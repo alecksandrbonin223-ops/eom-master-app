@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     //
     const YOUR_BOT_TOKEN = '8590877518:AAFwm5LqTunjOnvFs2eRFpE-s2buJneBio4'; 
     const YOUR_CHAT_ID = '5844521663'; // Ваш рабочий Chat ID
+    const MIN_ORDER_PRICE = 4000;
     //
     // *********************************************************
     //
@@ -14,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tg) {
         tg.ready();
     } else {
-        // Fallback, если библиотека Telegram не загрузилась
         const appContainer = document.getElementById('app-container');
         if (appContainer) appContainer.innerHTML = '<h2>Ошибка: Telegram WebApp не инициализирован.</h2>';
         return; 
@@ -53,9 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // 4. Наша корзина и минимальный заказ
+    // 4. Наша корзина
     let cart = {};
-    const MIN_ORDER_PRICE = 4000;
 
     // ----- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ -----
 
@@ -136,8 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <p><strong>Сумма заказа:</strong> ${totalPrice} ₽</p>
             ${totalPrice < MIN_ORDER_PRICE ? `<p class="note">⚠️ Минимальный заказ ${MIN_ORDER_PRICE} ₽. Итого к оплате: ${finalPrice} ₽</p>` : ''}
             
-            <form id="order-form" class="order-form">
-                <label for="address">Адрес (город, улица, дом, кв)</label>
+            <form id="order-form" class="order-form" novalidate> <label for="address">Адрес (город, улица, дом, кв)</label>
                 <input type="text" id="address" required placeholder="Москва, Тверская, 10, кв 5">
                 
                 <label for="phone">Ваш телефон</label>
@@ -183,98 +181,90 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ФУНКЦИЯ ОТПРАВКИ ЗАКАЗА В TELEGRAM (САМЫЙ НАДЕЖНЫЙ МЕТОД ЧТЕНИЯ)
-async function handleSendOrder() {
-    
-    // *** КРИТИЧЕСКИ ВАЖНО: Принудительное снятие фокуса и таймаут ***
-    document.querySelectorAll('.order-form input').forEach(input => {
-        if (document.activeElement === input) {
-            input.blur(); 
-        }
-    });
-    // Даем 100мс, чтобы браузер гарантированно записал значения.
-    await new Promise(resolve => setTimeout(resolve, 100)); 
-    // ************************************************************
-
-    const addressElement = document.getElementById('address');
-    const phoneElement = document.getElementById('phone');
-    const commentElement = document.getElementById('comment');
-    
-    // **ЧТЕНИЕ ЗНАЧЕНИЙ**
-    const address = addressElement ? addressElement.value : '';
-    const phone = phoneElement ? phoneElement.value : '';
-    const comment = commentElement ? commentElement.value : '';
-    
-    // **ФИНАЛЬНАЯ ПРОВЕРКА ВАЛИДАЦИИ:**
-    if (!address.trim() || !phone.trim()) { 
-        alert("Пожалуйста, заполните Адрес и Телефон.");
-        return; // Возврат, если поля пустые
-    }
-
-    // 1. Формируем список заказа для сообщения
-    const { totalPrice, totalItems } = calculateCartTotal();
-    let finalPrice = Math.max(totalPrice, MIN_ORDER_PRICE);
-    
-    let orderDetails = `**НОВЫЙ ЗАКАЗ МАСТЕР НА ЧАС**\n\n`;
-    const tg = window.Telegram.WebApp;
-    const YOUR_BOT_TOKEN = '8590877518:AAFwm5LqTunjOnvFs2eRFpE-s2buJneBio4'; 
-    const YOUR_CHAT_ID = '5844521663'; 
-
-    // Добавляем проверку наличия initDataUnsafe
-    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        orderDetails += `**От клиента:** ${tg.initDataUnsafe.user.first_name}\n`;
-        orderDetails += `**Username клиента:** @${tg.initDataUnsafe.user.username || 'N/A'}\n\n`;
-    } else {
-        orderDetails += `**От клиента:** Неизвестно\n\n`;
-    }
-
-    orderDetails += `**УСЛУГИ (${totalItems} шт):**\n`;
-    for (const serviceId in cart) {
-        const quantity = cart[serviceId];
-        const service = getServiceById(serviceId);
-        if (service) {
-            orderDetails += `- ${service.title}: ${quantity} x ${service.price} ₽\n`;
-        }
-    }
-    
-    orderDetails += `\n**ИТОГО:** ${totalPrice} ₽\n`;
-    orderDetails += `**МИНИМАЛЬНЫЙ ЗАКАЗ:** ${MIN_ORDER_PRICE} ₽\n`;
-    orderDetails += `**К ОПЛАТЕ:** ${finalPrice} ₽\n\n`;
-    
-    orderDetails += `**АДРЕС:** ${address}\n`;
-    orderDetails += `**ТЕЛЕФОН:** ${phone}\n`;
-    orderDetails += `**КОММЕНТАРИЙ:** ${comment.trim() || 'Нет'}\n`;
-
-    // 2. Отправляем через Telegram API
-    const url = `https://api.telegram.org/bot${YOUR_BOT_TOKEN}/sendMessage`;
-    
-    try {
-        tg.MainButton.showProgress(true);
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: YOUR_CHAT_ID,
-                text: orderDetails,
-                parse_mode: 'Markdown' 
-            })
+    // ФУНКЦИЯ ОТПРАВКИ ЗАКАЗА В TELEGRAM (ФИНАЛЬНАЯ ВЕРСИЯ)
+    async function handleSendOrder() {
+        
+        // КРИТИЧЕСКИ ВАЖНО: Принудительное снятие фокуса и таймаут
+        document.querySelectorAll('.order-form input').forEach(input => {
+            if (document.activeElement === input) {
+                input.blur(); 
+            }
         });
+        await new Promise(resolve => setTimeout(resolve, 100)); 
+        // ************************************************************
 
-        if (response.ok) {
-            showSuccessScreen(phone);
-        } else {
-            const errorData = await response.json();
-            // Выводим alert с ошибкой, чтобы понять, почему не отправилось
-            alert(`Ошибка! Не удалось отправить заказ. ${errorData.description || 'Неизвестная ошибка API'}`);
-            throw new Error(`API Error: ${errorData.description || 'Unknown error'}`);
+        const addressElement = document.getElementById('address');
+        const phoneElement = document.getElementById('phone');
+        const commentElement = document.getElementById('comment');
+        
+        // ЧТЕНИЕ ЗНАЧЕНИЙ
+        const address = addressElement ? addressElement.value.trim() : '';
+        const phone = phoneElement ? phoneElement.value.trim() : '';
+        const comment = commentElement ? commentElement.value.trim() : '';
+        
+        // ** ФИНАЛЬНАЯ ПРОВЕРКА ВАЛИДАЦИИ (простая проверка на пустоту):**
+        if (address.length === 0 || phone.length === 0) { 
+            alert("Пожалуйста, заполните Адрес и Телефон.");
+            return; 
         }
-    } catch (error) {
-        alert(`Критическая ошибка отправки: ${error.message}`);
-        console.error("Sending error:", error);
-    } finally {
-        tg.MainButton.hideProgress();
+
+        // 1. Формируем список заказа для сообщения
+        const { totalPrice, totalItems } = calculateCartTotal();
+        let finalPrice = Math.max(totalPrice, MIN_ORDER_PRICE);
+        
+        let orderDetails = `**НОВЫЙ ЗАКАЗ МАСТЕР НА ЧАС**\n\n`;
+        
+        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            orderDetails += `**От клиента:** ${tg.initDataUnsafe.user.first_name}\n`;
+            orderDetails += `**Username клиента:** @${tg.initDataUnsafe.user.username || 'N/A'}\n\n`;
+        } else {
+            orderDetails += `**От клиента:** Неизвестно (Не удалось получить данные Telegram)\n\n`;
+        }
+
+        orderDetails += `**УСЛУГИ (${totalItems} шт):**\n`;
+        for (const serviceId in cart) {
+            const quantity = cart[serviceId];
+            const service = getServiceById(serviceId);
+            if (service) {
+                orderDetails += `- ${service.title}: ${quantity} x ${service.price} ₽\n`;
+            }
+        }
+        
+        orderDetails += `\n**ИТОГО:** ${totalPrice} ₽\n`;
+        orderDetails += `**МИНИМАЛЬНЫЙ ЗАКАЗ:** ${MIN_ORDER_PRICE} ₽\n`;
+        orderDetails += `**К ОПЛАТЕ:** ${finalPrice} ₽\n\n`;
+        
+        orderDetails += `**АДРЕС:** ${address}\n`;
+        orderDetails += `**ТЕЛЕФОН:** ${phone}\n`;
+        orderDetails += `**КОММЕНТАРИЙ:** ${comment || 'Нет'}\n`;
+
+        // 2. Отправляем через Telegram API
+        const url = `https://api.telegram.org/bot${YOUR_BOT_TOKEN}/sendMessage`;
+        
+        try {
+            tg.MainButton.showProgress(true);
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: YOUR_CHAT_ID,
+                    text: orderDetails,
+                    parse_mode: 'Markdown' 
+                })
+            });
+
+            if (response.ok) {
+                showSuccessScreen(phone);
+            } else {
+                const errorData = await response.json();
+                alert(`Ошибка API: Не удалось отправить заказ. ${errorData.description || 'Неизвестная ошибка'}`);
+            }
+        } catch (error) {
+            alert(`Критическая ошибка: Проблема с интернет-соединением или Fetch. ${error.message}`);
+        } finally {
+            tg.MainButton.hideProgress();
+        }
     }
-}
 
     // Экран Успешной Отправки
     function showSuccessScreen(phone) {
@@ -283,7 +273,7 @@ async function handleSendOrder() {
             <p>Спасибо за ваш заказ. Мы получили вашу заявку и уже начали обработку.</p>
             <p>В ближайшее время менеджер свяжется с вами по номеру <strong>${phone}</strong>.</p>
         `;
-        cart = {}; // Очищаем корзину
+        cart = {}; 
         tg.MainButton.setText("ЗАКРЫТЬ");
         tg.MainButton.onClick(() => { tg.close(); }); 
         tg.BackButton.hide();
