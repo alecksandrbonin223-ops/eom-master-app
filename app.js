@@ -1,16 +1,21 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // 
-    // ***** КОНФИГУРАЦИЯ (ОБЯЗАТЕЛЬНО ВСТАВЬТЕ ВАШ ТОКЕН) *****
+    // ***** КОНФИГУРАЦИЯ *****
     //
-    const YOUR_BOT_TOKEN = '8590877518:AAFwm5LqTunjOnvFs2eRFpE-s2buJneBio4'; // ВАШ ТОКЕН
-    const YOUR_CHAT_ID = '5844521663'; // ВАШ ID
+    const YOUR_BOT_TOKEN = '8590877518:AAFwm5LqTunjOnvFs2eRFpE-s2buJneBio4';
+    const YOUR_CHAT_ID = '5844521663'; 
     //
     // *********************************************************
     //
 
     // 1. Инициализация Telegram
     const tg = window.Telegram.WebApp;
+    if (!tg) {
+        // Fallback для диагностики, если tg не загружен
+        document.getElementById('app-container').innerHTML = '<h2>Ошибка: Telegram WebApp не загружен.</h2>';
+        return;
+    }
     tg.ready();
 
     // 2. Получаем главный контейнер
@@ -46,11 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // 4. Наша корзина и минимальный заказ
     let cart = {};
     const MIN_ORDER_PRICE = 4000;
 
-    // ----- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ -----
+    // ----- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (без изменений) -----
 
     function getServiceById(serviceId) {
         for (const categoryId in priceList.services) {
@@ -124,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let finalPrice = Math.max(totalPrice, MIN_ORDER_PRICE);
         
-        // ВАЖНО: У полей ввода должны быть id="address" и id="phone"
         appContainer.innerHTML = `
             <h2>Оформление заказа</h2>
             <p><strong>Сумма заказа:</strong> ${totalPrice} ₽</p>
@@ -141,17 +144,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 <input type="text" id="comment" placeholder="Нужен стремянка, старый фонд">
             </form>
         `;
+        
+        // *** НОВОЕ: Принудительная отрисовка и фокус ***
+        // Даем браузеру секунду, чтобы отрисовать форму, затем ставим фокус
+        setTimeout(() => {
+            const addressInput = document.getElementById('address');
+            if (addressInput) {
+                addressInput.focus();
+                addressInput.blur(); // Сразу убираем фокус, чтобы не вызывать клавиатуру
+            }
+        }, 100);
+        // **********************************************
 
         tg.MainButton.setText(`ПОДТВЕРДИТЬ ЗАКАЗ на ${finalPrice} ₽`);
         tg.MainButton.show();
-        // Привязываем функцию отправки к главной кнопке
         tg.MainButton.onClick(handleSendOrder);
         
         tg.BackButton.show();
         tg.BackButton.onClick(updateCartView); 
     }
 
-    // Обновляет Главную кнопку и ее действие
     function updateCartView() {
         const { totalPrice, totalItems } = calculateCartTotal();
 
@@ -171,13 +183,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ФУНКЦИЯ ОТПРАВКИ ЗАКАЗА В TELEGRAM
     async function handleSendOrder() {
-        // Мы используем document.getElementById, потому что форма уже гарантированно
-        // находится на странице после вызова showOrderScreen.
         const addressElement = document.getElementById('address');
         const phoneElement = document.getElementById('phone');
         const commentElement = document.getElementById('comment');
         
-        // **УСИЛЕННАЯ ПРОВЕРКА ДЛЯ УСТРАНЕНИЯ ОШИБКИ ВАЛИДАЦИИ:**
+        // УСИЛЕННАЯ ПРОВЕРКА:
         if (!addressElement || !phoneElement || !addressElement.value.trim() || !phoneElement.value.trim()) { 
             alert("Пожалуйста, заполните Адрес и Телефон.");
             return;
@@ -192,7 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let finalPrice = Math.max(totalPrice, MIN_ORDER_PRICE);
         
         let orderDetails = `**НОВЫЙ ЗАКАЗ МАСТЕР НА ЧАС**\n\n`;
-        // Используем данные пользователя Telegram (если доступны)
         orderDetails += `**От клиента:** ${tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : 'N/A'}\n`;
         orderDetails += `**Username клиента:** @${tg.initDataUnsafe.user ? tg.initDataUnsafe.user.username : 'N/A'}\n\n`;
         
@@ -217,12 +226,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = `https://api.telegram.org/bot${YOUR_BOT_TOKEN}/sendMessage`;
         
         try {
-            tg.MainButton.showProgress(true); // Показываем крутилку
+            tg.MainButton.showProgress(true);
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    chat_id: YOUR_CHAT_ID, // Ваш личный чат
+                    chat_id: YOUR_CHAT_ID,
                     text: orderDetails,
                     parse_mode: 'Markdown' 
                 })
@@ -235,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(`API Error: ${errorData.description || 'Unknown error'}`);
             }
         } catch (error) {
-            alert(`Ошибка! Не удалось отправить заказ. Проверьте токен бота и Chat ID. Возможно, токен бота неверный или бот заблокирован. ${error.message}`);
+            alert(`Ошибка! Не удалось отправить заказ. Проверьте токен бота и Chat ID. ${error.message}`);
             console.error("Sending error:", error);
             showMainScreen(); 
         } finally {
@@ -243,21 +252,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Экран Успешной Отправки
     function showSuccessScreen(phone) {
         appContainer.innerHTML = `
             <h2>🎉 Заказ принят!</h2>
-            <p>Спасибо за ваш заказ. Мы получили вашу заявку и уже начали обработку.</p>
             <p>В ближайшее время менеджер свяжется с вами по номеру <strong>${phone}</strong>.</p>
         `;
-        cart = {}; // Очищаем корзину
+        cart = {};
         tg.MainButton.setText("ЗАКРЫТЬ");
         tg.MainButton.onClick(() => { tg.close(); }); 
         tg.BackButton.hide();
     }
 
-    // ----- ФУНКЦИИ КОРЗИНЫ -----
-
+    // ... (Остальные функции корзины и обработчики кликов без изменений) ...
     function updateServiceControls(serviceId) {
         const controlsContainer = document.getElementById(`controls-${serviceId}`);
         if (!controlsContainer) return;
@@ -290,7 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateServiceControls(serviceId);
     }
     
-    // ----- ОБРАБОТЧИК КЛИКОВ (для кнопок + / -) -----
     appContainer.addEventListener('click', (event) => {
         const target = event.target;
         if (target.classList.contains('btn-add')) {
@@ -305,7 +310,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-
 
     // ----- СТАРТ ПРИЛОЖЕНИЯ -----
     showMainScreen(); 
