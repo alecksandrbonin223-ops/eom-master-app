@@ -126,3 +126,23 @@ body {
     min-width: 30px;
     text-align: center;
 }
+/* --- Стили для Шага 5 (Форма заказа) --- */
+
+.order-form input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid var(--tg-theme-hint-color);
+    border-radius: 8px;
+    font-size: 16px;
+    background-color: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-text-color);
+    box-sizing: border-box; /* Важно, чтобы padding не увеличивал ширину */
+}
+
+.order-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: var(--tg-theme-hint-color);
+}
