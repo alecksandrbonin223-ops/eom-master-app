@@ -3,15 +3,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // 
     // ***** КОНФИГУРАЦИЯ (ОБЯЗАТЕЛЬНО ВСТАВЬТЕ ВАШ ТОКЕН) *****
     //
-    const YOUR_BOT_TOKEN = ''; // !!! ВСТАВЬТЕ ТОКЕН ЗДЕСЬ !!!
+    const YOUR_BOT_TOKEN = '8590877518:AAFwm5LqTunjOnvFs2eRFpE-s2buJneBio4'; // !!! ВСТАВЬТЕ ТОКЕН ЗДЕСЬ !!!
     const YOUR_CHAT_ID = '5844521663'; 
     //
     // *********************************************************
     //
 
-    // 1. Инициализация Telegram
-    const tg = window.Telegram.WebApp;
+  // 1. Инициализация Telegram
+const tg = window.Telegram.WebApp;
+
+if (tg) {
     tg.ready();
+} else {
+    // Этот alert должен помочь в диагностике
+    alert("Ошибка: Не удалось инициализировать Telegram WebApp.");
+    return; // Останавливаем весь скрипт, чтобы избежать ошибок
+}
+
+// 2. Получаем главный контейнер
+const appContainer = document.getElementById('app-container');
+
+// 3. Данные (Прайс-лист)
+// ... (остальной код)
 
     // 2. Получаем главный контейнер
     const appContainer = document.getElementById('app-container');
