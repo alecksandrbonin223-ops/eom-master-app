@@ -134,21 +134,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ФУНКЦИЯ ОТПРАВКИ ЗАКАЗА В TELEGRAM
-    async function handleSendOrder() {
-        // Мы используем document.getElementById, потому что форма уже гарантированно
-        // находится на странице после вызова showOrderScreen.
-        const addressElement = document.getElementById('address');
-        const phoneElement = document.getElementById('phone');
-        const commentElement = document.getElementById('comment');
-        
-        // **КРИТИЧЕСКАЯ ПРОВЕРКА:**
-        // Проверяем, что элементы существуют, и их значения не пусты (после обрезки пробелов).
-        if (!addressElement || !phoneElement || !addressElement.value.trim() || !phoneElement.value.trim()) { 
-            alert("Пожалуйста, заполните Адрес и Телефон.");
-            return;
-        }
+  // ФУНКЦИЯ ОТПРАВКИ ЗАКАЗА В TELEGRAM
+async function handleSendOrder() {
+    // *** НАЧАЛО ИЗМЕНЕНИЯ ***
 
+    if (YOUR_BOT_TOKEN === 'ВАШ_BOT_TOKEN_ОТ_BOTFATHER' || !YOUR_BOT_TOKEN.trim()) {
+        alert("Критическая ошибка: Вставьте реальный токен бота в app.js!");
+        return;
+    }
+    if (!YOUR_CHAT_ID.trim()) {
+        alert("Критическая ошибка: Вставьте ваш Chat ID в app.js!");
+        return;
+    }
+
+    // *** КОНЕЦ ИЗМЕНЕНИЯ ***
+
+    // Мы используем document.getElementById, потому что форма уже гарантированно
+    // находится на странице после вызова showOrderScreen.
+    const addressElement = document.getElementById('address');
+    const phoneElement = document.getElementById('phone');
+    const commentElement = document.getElementById('comment');
+    
+    // **КРИТИЧЕСКАЯ ПРОВЕРКА (ОШИБКА 1):**
+    if (!addressElement || !phoneElement || !addressElement.value.trim() || !phoneElement.value.trim()) { 
+        alert("Пожалуйста, заполните Адрес и Телефон.");
+        return;
+    }
+    // ... (остальной код handleSendOrder без изменений)
+}
         const address = addressElement.value;
         const phone = phoneElement.value;
         const comment = commentElement.value;
