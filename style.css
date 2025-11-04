@@ -47,3 +47,82 @@ body {
     font-size: 24px;
     margin-right: 15px;
 }
+/* --- Стили для Шага 4 --- */
+
+/* Заголовок категории на экране услуг */
+.category-title {
+    font-size: 22px;
+    margin-bottom: 15px;
+}
+
+/* Карточка одной услуги */
+.service-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+    border-radius: 10px;
+    padding: 12px 15px;
+    margin-bottom: 10px;
+}
+
+/* Левая часть карточки (название, цена) */
+.service-details {
+    display: flex;
+    flex-direction: column;
+    margin-right: 15px;
+}
+
+.service-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-color);
+    margin-bottom: 4px;
+}
+
+.service-price {
+    font-size: 14px;
+    color: var(--hint-color);
+}
+
+/* Правая часть карточки (кнопки) */
+.service-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+/* Кнопка "Добавить" */
+.btn-add {
+    background-color: var(--button-color);
+    color: var(--button-text-color);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Кнопки счетчика (+ / -) */
+.btn-count {
+    background-color: var(--button-color);
+    color: var(--button-text-color);
+    border: none;
+    border-radius: 50%; /* Круглые */
+    width: 30px;
+    height: 30px;
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 28px; /* Для центрирования +/- */
+}
+
+/* Цифра в счетчике */
+.count {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-color);
+    min-width: 30px;
+    text-align: center;
+}
