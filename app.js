@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 
     // ***** КОНФИГУРАЦИЯ (ОБЯЗАТЕЛЬНО ВСТАВЬТЕ ВАШ ТОКЕН) *****
     //
-    const YOUR_BOT_TOKEN = '8590877518:AAFwm5LqTunjOnvFs2eRFpE-s2buJneBio4'; // !!! ВСТАВЬТЕ ТОКЕН ЗДЕСЬ !!!
+    const YOUR_BOT_TOKEN = ''; // !!! ВСТАВЬТЕ ТОКЕН ЗДЕСЬ !!!
     const YOUR_CHAT_ID = '5844521663'; 
     //
     // *********************************************************
