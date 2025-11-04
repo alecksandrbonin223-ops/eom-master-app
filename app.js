@@ -181,77 +181,66 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ФУНКЦИЯ ОТПРАВКИ ЗАКАЗА В TELEGRAM
-    async function handleSendOrder() {
-        const addressElement = document.getElementById('address');
-        const phoneElement = document.getElementById('phone');
-        const commentElement = document.getElementById('comment');
-        
-        // УСИЛЕННАЯ ПРОВЕРКА:
-        if (!addressElement || !phoneElement || !addressElement.value.trim() || !phoneElement.value.trim()) { 
-            alert("Пожалуйста, заполните Адрес и Телефон.");
-            return;
+   // ФУНКЦИЯ ОТПРАВКИ ЗАКАЗА В TELEGRAM
+async function handleSendOrder() {
+    
+    // *** НОВОЕ: Принудительно убираем фокус со всех полей ввода ***
+    document.querySelectorAll('.order-form input').forEach(input => {
+        if (document.activeElement === input) {
+            input.blur();
         }
+    });
+    // ************************************************************
 
-        const address = addressElement.value;
-        const phone = phoneElement.value;
-        const comment = commentElement.value;
-        
-        // 1. Формируем список заказа для сообщения
-        const { totalPrice, totalItems } = calculateCartTotal();
-        let finalPrice = Math.max(totalPrice, MIN_ORDER_PRICE);
-        
-        let orderDetails = `**НОВЫЙ ЗАКАЗ МАСТЕР НА ЧАС**\n\n`;
-        orderDetails += `**От клиента:** ${tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : 'N/A'}\n`;
-        orderDetails += `**Username клиента:** @${tg.initDataUnsafe.user ? tg.initDataUnsafe.user.username : 'N/A'}\n\n`;
-        
-        orderDetails += `**УСЛУГИ (${totalItems} шт):**\n`;
-        for (const serviceId in cart) {
-            const quantity = cart[serviceId];
-            const service = getServiceById(serviceId);
-            if (service) {
-                orderDetails += `- ${service.title}: ${quantity} x ${service.price} ₽\n`;
-            }
-        }
-        
-        orderDetails += `\n**ИТОГО:** ${totalPrice} ₽\n`;
-        orderDetails += `**МИНИМАЛЬНЫЙ ЗАКАЗ:** ${MIN_ORDER_PRICE} ₽\n`;
-        orderDetails += `**К ОПЛАТЕ:** ${finalPrice} ₽\n\n`;
-        
-        orderDetails += `**АДРЕС:** ${address}\n`;
-        orderDetails += `**ТЕЛЕФОН:** ${phone}\n`;
-        orderDetails += `**КОММЕНТАРИЙ:** ${comment.trim() || 'Нет'}\n`;
-
-        // 2. Отправляем через Telegram API
-        const url = `https://api.telegram.org/bot${YOUR_BOT_TOKEN}/sendMessage`;
-        
-        try {
-            tg.MainButton.showProgress(true);
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: YOUR_CHAT_ID,
-                    text: orderDetails,
-                    parse_mode: 'Markdown' 
-                })
-            });
-
-            if (response.ok) {
-                showSuccessScreen(phone);
-            } else {
-                const errorData = await response.json();
-                throw new Error(`API Error: ${errorData.description || 'Unknown error'}`);
-            }
-        } catch (error) {
-            alert(`Ошибка! Не удалось отправить заказ. Проверьте токен бота и Chat ID. ${error.message}`);
-            console.error("Sending error:", error);
-            showMainScreen(); 
-        } finally {
-            tg.MainButton.hideProgress();
-        }
+    const addressElement = document.getElementById('address');
+    const phoneElement = document.getElementById('phone');
+    const commentElement = document.getElementById('comment');
+    
+    // **УСИЛЕННАЯ ПРОВЕРКА:**
+    if (!addressElement || !phoneElement || !addressElement.value.trim() || !phoneElement.value.trim()) { 
+        alert("Пожалуйста, заполните Адрес и Телефон.");
+        return;
     }
+    
+    // ... (Остальной код функции без изменений, начиная с: const address = addressElement.value; ...)
 
+    const address = addressElement.value;
+    const phone = phoneElement.value;
+    const comment = commentElement.value;
+    
+    // 1. Формируем список заказа для сообщения
+    // ... (остальной код формирования сообщения)
+
+    // 2. Отправляем через Telegram API
+    const url = `https://api.telegram.org/bot${YOUR_BOT_TOKEN}/sendMessage`;
+    
+    try {
+        // ... (блок try...catch для отправки)
+        tg.MainButton.showProgress(true);
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: YOUR_CHAT_ID,
+                text: orderDetails,
+                parse_mode: 'Markdown' 
+            })
+        });
+
+        if (response.ok) {
+            showSuccessScreen(phone);
+        } else {
+            const errorData = await response.json();
+            throw new Error(`API Error: ${errorData.description || 'Unknown error'}`);
+        }
+    } catch (error) {
+        alert(`Ошибка! Не удалось отправить заказ. Проверьте токен бота и Chat ID. ${error.message}`);
+        console.error("Sending error:", error);
+        showMainScreen(); 
+    } finally {
+        tg.MainButton.hideProgress();
+    }
+}
     function showSuccessScreen(phone) {
         appContainer.innerHTML = `
             <h2>🎉 Заказ принят!</h2>
