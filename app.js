@@ -3,28 +3,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // 
     // ***** КОНФИГУРАЦИЯ (ОБЯЗАТЕЛЬНО ВСТАВЬТЕ ВАШ ТОКЕН) *****
     //
-    const YOUR_BOT_TOKEN = '8590877518:AAFwm5LqTunjOnvFs2eRFpE-s2buJneBio4'; // !!! ВСТАВЬТЕ ТОКЕН ЗДЕСЬ !!!
-    const YOUR_CHAT_ID = '5844521663'; 
+    const YOUR_BOT_TOKEN = '8590877518:AAFwm5LqTunjOnvFs2eRFpE-s2buJneBio4'; // ВАШ ТОКЕН
+    const YOUR_CHAT_ID = '5844521663'; // ВАШ ID
     //
     // *********************************************************
     //
 
-  // 1. Инициализация Telegram
-const tg = window.Telegram.WebApp;
-
-if (tg) {
+    // 1. Инициализация Telegram
+    const tg = window.Telegram.WebApp;
     tg.ready();
-} else {
-    // Этот alert должен помочь в диагностике
-    alert("Ошибка: Не удалось инициализировать Telegram WebApp.");
-    return; // Останавливаем весь скрипт, чтобы избежать ошибок
-}
-
-// 2. Получаем главный контейнер
-const appContainer = document.getElementById('app-container');
-
-// 3. Данные (Прайс-лист)
-// ... (остальной код)
 
     // 2. Получаем главный контейнер
     const appContainer = document.getElementById('app-container');
@@ -71,7 +58,6 @@ const appContainer = document.getElementById('app-container');
             if (service) return service;
         }
         return null;
-        // Это и все остальные вспомогательные функции остались без изменений
     }
 
     function calculateCartTotal() {
@@ -87,8 +73,46 @@ const appContainer = document.getElementById('app-container');
         }
         return { totalPrice, totalItems };
     }
-    
-    //... (Остальные вспомогательные функции, showMainScreen, showServicesScreen - без изменений)
+
+    // ----- ОСНОВНЫЕ ФУНКЦИИ ЭКРАНОВ -----
+
+    function showMainScreen() {
+        appContainer.innerHTML = '<h2>Какая помощь вам нужна?</h2>';
+        priceList.categories.forEach(category => {
+            const button = document.createElement('button');
+            button.className = 'category-button';
+            button.innerHTML = `<span>${category.icon}</span> ${category.title}`;
+            button.onclick = () => { showServicesScreen(category.id); };
+            appContainer.appendChild(button);
+        });
+        tg.BackButton.hide();
+        updateCartView();
+    }
+
+    function showServicesScreen(categoryId) {
+        const category = priceList.categories.find(c => c.id === categoryId);
+        const services = priceList.services[categoryId] || [];
+        
+        appContainer.innerHTML = `<h2 class="category-title">${category.icon} ${category.title}</h2>`;
+
+        services.forEach(service => {
+            const item = document.createElement('div');
+            item.className = 'service-item';
+            item.innerHTML = `
+                <div class="service-details">
+                    <span class="service-title">${service.title}</span>
+                    <span class="service-price">${service.price} ₽</span>
+                </div>
+                <div class="service-controls" id="controls-${service.id}"></div>
+            `;
+            appContainer.appendChild(item);
+            updateServiceControls(service.id);
+        });
+
+        tg.BackButton.show();
+        tg.BackButton.onClick(showMainScreen);
+        updateCartView();
+    }
 
     // Экран Оформления Заказа
     function showOrderScreen() {
@@ -124,17 +148,16 @@ const appContainer = document.getElementById('app-container');
         tg.MainButton.onClick(handleSendOrder);
         
         tg.BackButton.show();
-        tg.BackButton.onClick(updateCartView); // Назад ведет в корзину/на главный
+        tg.BackButton.onClick(updateCartView); 
     }
 
-    // Обновляет Главную кнопку и ее действие (Переопределяем логику для надежности)
+    // Обновляет Главную кнопку и ее действие
     function updateCartView() {
         const { totalPrice, totalItems } = calculateCartTotal();
 
         if (totalItems === 0) {
             tg.MainButton.hide();
-            // Возвращаемся на главный экран, если корзина пуста
-            tg.BackButton.onClick(showMainScreen); 
+            tg.BackButton.onClick(showMainScreen);
         } else {
             let finalPrice = Math.max(totalPrice, MIN_ORDER_PRICE);
             let buttonText = `🛒 Корзина (${totalPrice} ₽ / Итого: ${finalPrice} ₽)`;
@@ -142,39 +165,24 @@ const appContainer = document.getElementById('app-container');
             tg.MainButton.setText(buttonText);
             tg.MainButton.show();
             
-            // Если корзина не пуста, при клике на MainButton открываем форму заказа
             tg.MainButton.onClick(showOrderScreen);
         }
     }
 
-  // ФУНКЦИЯ ОТПРАВКИ ЗАКАЗА В TELEGRAM
-async function handleSendOrder() {
-    // *** НАЧАЛО ИЗМЕНЕНИЯ ***
+    // ФУНКЦИЯ ОТПРАВКИ ЗАКАЗА В TELEGRAM
+    async function handleSendOrder() {
+        // Мы используем document.getElementById, потому что форма уже гарантированно
+        // находится на странице после вызова showOrderScreen.
+        const addressElement = document.getElementById('address');
+        const phoneElement = document.getElementById('phone');
+        const commentElement = document.getElementById('comment');
+        
+        // **УСИЛЕННАЯ ПРОВЕРКА ДЛЯ УСТРАНЕНИЯ ОШИБКИ ВАЛИДАЦИИ:**
+        if (!addressElement || !phoneElement || !addressElement.value.trim() || !phoneElement.value.trim()) { 
+            alert("Пожалуйста, заполните Адрес и Телефон.");
+            return;
+        }
 
-    if (YOUR_BOT_TOKEN === 'ВАШ_BOT_TOKEN_ОТ_BOTFATHER' || !YOUR_BOT_TOKEN.trim()) {
-        alert("Критическая ошибка: Вставьте реальный токен бота в app.js!");
-        return;
-    }
-    if (!YOUR_CHAT_ID.trim()) {
-        alert("Критическая ошибка: Вставьте ваш Chat ID в app.js!");
-        return;
-    }
-
-    // *** КОНЕЦ ИЗМЕНЕНИЯ ***
-
-    // Мы используем document.getElementById, потому что форма уже гарантированно
-    // находится на странице после вызова showOrderScreen.
-    const addressElement = document.getElementById('address');
-    const phoneElement = document.getElementById('phone');
-    const commentElement = document.getElementById('comment');
-    
-    // **КРИТИЧЕСКАЯ ПРОВЕРКА (ОШИБКА 1):**
-    if (!addressElement || !phoneElement || !addressElement.value.trim() || !phoneElement.value.trim()) { 
-        alert("Пожалуйста, заполните Адрес и Телефон.");
-        return;
-    }
-    // ... (остальной код handleSendOrder без изменений)
-}
         const address = addressElement.value;
         const phone = phoneElement.value;
         const comment = commentElement.value;
@@ -184,7 +192,7 @@ async function handleSendOrder() {
         let finalPrice = Math.max(totalPrice, MIN_ORDER_PRICE);
         
         let orderDetails = `**НОВЫЙ ЗАКАЗ МАСТЕР НА ЧАС**\n\n`;
-        // ... (Формирование тела сообщения без изменений) ...
+        // Используем данные пользователя Telegram (если доступны)
         orderDetails += `**От клиента:** ${tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : 'N/A'}\n`;
         orderDetails += `**Username клиента:** @${tg.initDataUnsafe.user ? tg.initDataUnsafe.user.username : 'N/A'}\n\n`;
         
@@ -221,7 +229,7 @@ async function handleSendOrder() {
             });
 
             if (response.ok) {
-                showSuccessScreen(phone); // Передаем телефон для сообщения успеха
+                showSuccessScreen(phone);
             } else {
                 const errorData = await response.json();
                 throw new Error(`API Error: ${errorData.description || 'Unknown error'}`);
@@ -248,21 +256,41 @@ async function handleSendOrder() {
         tg.BackButton.hide();
     }
 
-    // ... (Остальные функции, как addToCart, removeFromCart, updateServiceControls и Обработчик кликов - остаются без изменений) ...
+    // ----- ФУНКЦИИ КОРЗИНЫ -----
 
     function updateServiceControls(serviceId) {
-        // ... (Код без изменений)
+        const controlsContainer = document.getElementById(`controls-${serviceId}`);
+        if (!controlsContainer) return;
+
+        const quantity = cart[serviceId] || 0;
+
+        if (quantity === 0) {
+            controlsContainer.innerHTML = `<button class="btn-add" data-service-id="${serviceId}">Добавить</button>`;
+        } else {
+            controlsContainer.innerHTML = `
+                <button class="btn-count" data-action="remove" data-service-id="${serviceId}">-</button>
+                <span class="count">${quantity}</span>
+                <button class="btn-count" data-action="add" data-service-id="${serviceId}">+</button>
+            `;
+        }
     }
 
     function addToCart(serviceId) {
-        // ... (Код без изменений)
+        cart[serviceId] = (cart[serviceId] || 0) + 1;
+        updateCartView();
+        updateServiceControls(serviceId);
     }
 
     function removeFromCart(serviceId) {
-        // ... (Код без изменений)
+        cart[serviceId] = (cart[serviceId] || 0) - 1;
+        if (cart[serviceId] <= 0) {
+            delete cart[serviceId];
+        }
+        updateCartView();
+        updateServiceControls(serviceId);
     }
-
-    // Обработчик кликов
+    
+    // ----- ОБРАБОТЧИК КЛИКОВ (для кнопок + / -) -----
     appContainer.addEventListener('click', (event) => {
         const target = event.target;
         if (target.classList.contains('btn-add')) {
@@ -277,6 +305,7 @@ async function handleSendOrder() {
             }
         }
     });
+
 
     // ----- СТАРТ ПРИЛОЖЕНИЯ -----
     showMainScreen(); 
