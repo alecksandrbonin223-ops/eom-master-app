@@ -1,12 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // 
-    // ***** ЗАМЕНИТЕ ЭТИ ДВЕ КОНСТАНТЫ! *****
+    // ***** КОНФИГУРАЦИЯ (ОБЯЗАТЕЛЬНО ВСТАВЬТЕ ВАШ ТОКЕН) *****
     //
-    const YOUR_BOT_TOKEN = '5844521663'; // Пример: '7123456789:AAFJ_e79...'
-    const YOUR_CHAT_ID = '5844521663'; // Пример: '123456789'
+    const YOUR_BOT_TOKEN = '5844521663'; // !!! ВСТАВЬТЕ ТОКЕН ЗДЕСЬ !!!
+    const YOUR_CHAT_ID = '5844521663'; // ВАШ ID вставлен: 5844521663
     //
-    // *************************************
+    // *********************************************************
     //
 
     // 1. Инициализация Telegram
@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Получаем главный контейнер
     const appContainer = document.getElementById('app-container');
 
-    // 3. Данные (Просто для примера, вы можете добавить сюда весь ваш прайс)
+    // 3. Данные (Прайс-лист)
     const priceList = {
         "categories": [
             { "id": "electro", "title": "Электрика", "icon": "⚡️" },
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // 4. Наша корзина
+    // 4. Наша корзина и минимальный заказ
     let cart = {};
     const MIN_ORDER_PRICE = 4000;
 
@@ -77,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ----- ОСНОВНЫЕ ФУНКЦИИ ЭКРАНОВ -----
 
     function showMainScreen() {
-        // ... (Отрисовка категорий, код как в Шаге 4) ...
         appContainer.innerHTML = '<h2>Какая помощь вам нужна?</h2>';
         priceList.categories.forEach(category => {
             const button = document.createElement('button');
@@ -91,7 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showServicesScreen(categoryId) {
-        // ... (Отрисовка услуг, код как в Шаге 4) ...
         const category = priceList.categories.find(c => c.id === categoryId);
         const services = priceList.services[categoryId] || [];
         
@@ -116,17 +114,17 @@ document.addEventListener('DOMContentLoaded', () => {
         updateCartView();
     }
 
-    // НОВАЯ ФУНКЦИЯ: Экран Оформления Заказа
+    // Экран Оформления Заказа
     function showOrderScreen() {
         const { totalPrice, totalItems } = calculateCartTotal();
         if (totalItems === 0) {
-            // Если вдруг корзина пуста (хотя кнопка не должна быть видна)
             showMainScreen();
             return;
         }
 
         let finalPrice = Math.max(totalPrice, MIN_ORDER_PRICE);
         
+        // ВАЖНО: У полей ввода должны быть id="address" и id="phone"
         appContainer.innerHTML = `
             <h2>Оформление заказа</h2>
             <p><strong>Сумма заказа:</strong> ${totalPrice} ₽</p>
@@ -146,15 +144,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         tg.MainButton.setText(`ПОДТВЕРДИТЬ ЗАКАЗ на ${finalPrice} ₽`);
         tg.MainButton.show();
-        // ВАЖНО: Вешаем обработчик на MainButton
+        // Привязываем функцию отправки к главной кнопке
         tg.MainButton.onClick(handleSendOrder);
         
         tg.BackButton.show();
-        // При клике на "Назад" с экрана заказа, возвращаемся на главный экран
         tg.BackButton.onClick(showMainScreen); 
     }
 
-    // НОВАЯ ФУНКЦИЯ: Обновляет Главную кнопку и ее действие
+    // Обновляет Главную кнопку и ее действие
     function updateCartView() {
         const { totalPrice, totalItems } = calculateCartTotal();
 
@@ -172,14 +169,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // НОВАЯ ФУНКЦИЯ: Отправка данных в Telegram
+    // ФУНКЦИЯ ОТПРАВКИ ЗАКАЗА В TELEGRAM
     async function handleSendOrder() {
+        // Убеждаемся, что получаем значения с нужных ID
         const address = document.getElementById('address').value;
         const phone = document.getElementById('phone').value;
         const comment = document.getElementById('comment').value;
 
-        // Базовая валидация (проверяем, что поля заполнены)
-        if (!address || !phone) {
+        // Валидация с .trim() для удаления пробелов
+        if (!address.trim() || !phone.trim()) { 
             alert("Пожалуйста, заполните Адрес и Телефон.");
             return;
         }
@@ -189,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let finalPrice = Math.max(totalPrice, MIN_ORDER_PRICE);
         
         let orderDetails = `**НОВЫЙ ЗАКАЗ МАСТЕР НА ЧАС**\n\n`;
+        // Используем данные пользователя Telegram (если доступны)
         orderDetails += `**От клиента:** ${tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : 'N/A'}\n`;
         orderDetails += `**Username клиента:** @${tg.initDataUnsafe.user ? tg.initDataUnsafe.user.username : 'N/A'}\n\n`;
         
@@ -207,53 +206,57 @@ document.addEventListener('DOMContentLoaded', () => {
         
         orderDetails += `**АДРЕС:** ${address}\n`;
         orderDetails += `**ТЕЛЕФОН:** ${phone}\n`;
-        orderDetails += `**КОММЕНТАРИЙ:** ${comment || 'Нет'}\n`;
+        orderDetails += `**КОММЕНТАРИЙ:** ${comment.trim() || 'Нет'}\n`;
 
         // 2. Отправляем через Telegram API
         const url = `https://api.telegram.org/bot${YOUR_BOT_TOKEN}/sendMessage`;
         
         try {
-            tg.MainButton.showProgress(true); // Показываем крутилку загрузки
+            tg.MainButton.showProgress(true); // Показываем крутилку
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    chat_id: YOUR_CHAT_ID, // Отправляем в ваш личный чат
+                    chat_id: YOUR_CHAT_ID, // Ваш личный чат
                     text: orderDetails,
-                    parse_mode: 'Markdown' // Для жирного текста (**)
+                    parse_mode: 'Markdown' 
                 })
             });
 
             if (response.ok) {
                 showSuccessScreen();
             } else {
-                throw new Error("Ошибка при отправке заказа.");
+                // Если ошибка, но код ответа 200, то проблема в данных (токене/ID)
+                const errorData = await response.json();
+                throw new Error(`API Error: ${errorData.description || 'Unknown error'}`);
             }
         } catch (error) {
             alert(`Ошибка! Не удалось отправить заказ. Проверьте токен бота и Chat ID. ${error.message}`);
             console.error("Sending error:", error);
-            showMainScreen(); // Возвращаемся на главный экран
+            showMainScreen(); 
         } finally {
             tg.MainButton.hideProgress();
         }
     }
 
-    // НОВАЯ ФУНКЦИЯ: Экран Успешной Отправки
+    // Экран Успешной Отправки
     function showSuccessScreen() {
+        // Мы используем значения, которые были введены перед отправкой, 
+        // поэтому они должны быть доступны в глобальной области или снова извлечены.
+        // Для простоты, здесь просто показываем сообщение.
         appContainer.innerHTML = `
             <h2>🎉 Заказ принят!</h2>
             <p>Спасибо за ваш заказ. Мы получили вашу заявку и уже начали обработку.</p>
-            <p>В ближайшее время менеджер свяжется с вами по указанному телефону (${document.getElementById('phone').value}).</p>
+            <p>В ближайшее время менеджер свяжется с вами.</p>
         `;
         cart = {}; // Очищаем корзину
-        tg.MainButton.setText("НАЗАД");
-        tg.MainButton.onClick(() => { tg.close(); }); // При успехе закрываем Mini App
+        tg.MainButton.setText("ЗАКРЫТЬ");
+        // После успешного заказа закрываем Mini App
+        tg.MainButton.onClick(() => { tg.close(); }); 
         tg.BackButton.hide();
-        // После успешного заказа можно закрыть Mini App
-        setTimeout(() => { tg.close(); }, 5000); 
     }
 
-    // ... (Функции addToCart, removeFromCart, updateServiceControls и Обработчик кликов остаются прежними) ...
+    // ----- ФУНКЦИИ КОРЗИНЫ -----
 
     function updateServiceControls(serviceId) {
         const controlsContainer = document.getElementById(`controls-${serviceId}`);
