@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 
     // ***** КОНФИГУРАЦИЯ - ПРОВЕРЕНО И АКТУАЛЬНО *****
     //
-    const YOUR_BOT_TOKEN = '8590877518:AAFwm5LqTunjOnvFs2eRFpE-s2buJneBio4'; 
+    const YOUR_BOT_TOKEN = '8383771761:AAF0QxkawDAcCb2wmO0wXxEX9aYAtuQvpmY'; 
     const YOUR_CHAT_ID = '5844521663'; // Ваш рабочий Chat ID
     const MIN_ORDER_PRICE = 4000;
     //
